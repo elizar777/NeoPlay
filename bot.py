@@ -2,6 +2,7 @@ from aiogram import Bot, Dispatcher, types, executor
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.types import ParseMode
 from aiogram.dispatcher import FSMContext
 import logging, time, sqlite3
 
@@ -9,6 +10,7 @@ import logging, time, sqlite3
 from config import API_TOKEN
 from modules.movie_bot import get_movie_info
 from modules.weather import get_weather
+from modules.news import get_news_from_24kg
 
 logging.basicConfig(level=logging.INFO)
 
@@ -42,9 +44,9 @@ dp.middleware.setup(LoggingMiddleware())
 # Клавиатуры
 start_keyboard = [
     types.KeyboardButton("Фильмы"),
-    types.KeyboardButton("Гороскоп"),
     types.KeyboardButton("Погода"),
-    types.KeyboardButton("Загадки")
+    types.KeyboardButton("Новости"),
+    types.KeyboardButton("Загадки и анекдоты")
 ]
 start_button = types.ReplyKeyboardMarkup(resize_keyboard=True).add(*start_keyboard)
 
@@ -107,7 +109,7 @@ async def cmd_movie(message: types.Message, state: FSMContext):
 @dp.message_handler(text='Погода')
 async def weather(message: types.Message):
     await Form.waiting_for_city.set()
-    await message.reply("Выберите город:", reply_markup=city_markup)
+    await message.reply("🌍 Выберите город:", reply_markup=city_markup)
 
 @dp.message_handler(state=Form.waiting_for_city)
 async def cmd_weather(message: types.Message, state: FSMContext):
@@ -122,6 +124,16 @@ async def cmd_weather(message: types.Message, state: FSMContext):
     
     await message.reply(weather_text, reply_markup=start_button)
     await state.finish()
+    
+    
+    
+    
+    # Обработчик "Новости"
+@dp.message_handler(text='Новости')
+async def news(message: types.Message):
+    news_text = await get_news_from_24kg()
+    await message.answer(news_text, parse_mode=ParseMode.MARKDOWN, reply_markup=start_button)
+    
 
 # Запуск бота
 if __name__ == "__main__":
